@@ -16,6 +16,7 @@ local cthulhu = require("cthulhu")
 local fs = require("infra.fs")
 local ex = require("infra.ex")
 local uv = vim.loop
+local jelly = require("infra.jellyfish")("sudo_write")
 
 local api = vim.api
 
@@ -110,20 +111,21 @@ return function(bufnr)
 
   bufnr = bufnr or api.nvim_get_current_buf()
 
-  local tmpfpath
-  do
-    tmpfpath = os.tmpname()
-    assert(cthulhu.nvim.dump_buffer(bufnr, tmpfpath))
-  end
-
   local outfile
   do
     local bufname = api.nvim_buf_get_name(bufnr)
+    if bufname == "" then return jelly.err("this is an unnamed buffer") end
     if fs.is_absolute(bufname) then
       outfile = bufname
     else
       outfile = vim.fn.fnamemodify("%:p", outfile)
     end
+  end
+
+  local tmpfpath
+  do
+    tmpfpath = os.tmpname()
+    assert(cthulhu.nvim.dump_buffer(bufnr, tmpfpath))
   end
 
   sudo({ "sudo", "dd", "if=" .. tmpfpath, "of=" .. outfile }, function(exit_code)
