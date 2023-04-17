@@ -108,6 +108,7 @@ local locked = false
 
 return function(bufnr)
   assert(not locked)
+  locked = true
 
   bufnr = bufnr or api.nvim_get_current_buf()
 
