@@ -14,7 +14,6 @@
 
 local cthulhu = require("cthulhu")
 local fs = require("infra.fs")
-local ex = require("infra.ex")
 local uv = vim.loop
 local jelly = require("infra.jellyfish")("sudo_write")
 
@@ -133,6 +132,6 @@ return function(bufnr)
     locked = false
     assert(uv.fs_unlink(tmpfpath))
     if exit_code ~= 0 then return end
-    api.nvim_buf_call(bufnr, function() ex("edit!") end)
+    vim.bo[bufnr].modified = false
   end)
 end
