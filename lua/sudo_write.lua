@@ -3,19 +3,23 @@
 --* sudo should run in foreground
 --* singleton
 --* not work with other PAMs: u2f
+--* no lock, snapshot current content of the buffer being used
 --
 -- credits:
 --   this plugin is inspired by @asn from matrix nvim room
 --   https://git.cryptomilk.org/users/asn/dotfiles.git/tree/nvim/.config/nvim/lua/utils.lua
 --
---todo:
---* why sudo will not ask user to enter password every time in shell?
---* lock the buffer with &modifiable
+--todo: reuse tty to avoid sudo asking input password every time
+--todo: immutable `chattr +i`
 
 local cthulhu = require("cthulhu")
 local fs = require("infra.fs")
 local uv = vim.loop
 local jelly = require("infra.jellyfish")("sudo_write")
+local strlib = require("infra.strlib")
+local ex = require("infra.ex")
+local bufrename = require("infra.bufrename")
+local prefer = require("infra.prefer")
 
 local api = vim.api
 
@@ -23,8 +27,8 @@ local api = vim.api
 ---@param gold string
 ---@return boolean
 local function output_contains(output, gold)
-  for _, line in pairs(output) do
-    if string.find(line, gold, 1, true) then return true end
+  for _, line in ipairs(output) do
+    if strlib.find(line, gold) then return true end
   end
   return false
 end
@@ -35,7 +39,7 @@ local function sudo(args, callback)
   local cmd = { "sudo", unpack(args) }
   assert(#cmd > 1)
 
-  local bufnr, win_id
+  local bufnr, winid
   local term, job
   local term_width, term_height
 
@@ -46,34 +50,28 @@ local function sudo(args, callback)
   end
 
   bufnr = api.nvim_create_buf(false, true)
+  bufrename(bufnr, string.format("sudo://%s", table.concat(args, " ")))
 
   local function show_prompt()
-    if not (win_id and api.nvim_win_is_valid(win_id)) then
+    if not (winid and api.nvim_win_is_valid(winid)) then
       local cols, lines = vim.o.columns, vim.o.lines
       local width = term_width + 2
       local height = term_height + 2
-      local x = math.floor((cols - width) / 2)
-      local y = lines - height
-      win_id = api.nvim_open_win(bufnr, true, {
-        relative = "editor",
-        style = "minimal",
-        row = y,
-        col = x,
-        width = width,
-        height = height,
-      })
+      local col = math.floor((cols - width) / 2)
+      local row = lines - height
+      winid = api.nvim_open_win(bufnr, true, { relative = "editor", style = "minimal", row = row, col = col, width = width, height = height })
     else
-      api.nvim_set_current_win(win_id)
+      api.nvim_set_current_win(winid)
     end
-    vim.cmd.startinsert()
+    ex("startinsert")
   end
 
   term = api.nvim_open_term(bufnr, {
     on_input = function(_, _, _, data)
       vim.fn.chansend(job, data)
       if data == "\r" then vim.schedule(function()
-        api.nvim_win_close(win_id, false)
-        win_id = nil
+        api.nvim_win_close(winid, false)
+        winid = nil
       end) end
     end,
   })
@@ -87,7 +85,7 @@ local function sudo(args, callback)
     stderr_buffered = false,
     env = { LANG = "C" },
     on_exit = function(_, exit_code, _)
-      if win_id and api.nvim_win_is_valid(win_id) then api.nvim_win_close(win_id, false) end
+      if winid and api.nvim_win_is_valid(winid) then api.nvim_win_close(winid, false) end
       vim.fn.chanclose(term)
       api.nvim_buf_delete(bufnr, { force = false })
       callback(exit_code)
@@ -128,10 +126,10 @@ return function(bufnr)
     assert(cthulhu.nvim.dump_buffer(bufnr, tmpfpath))
   end
 
-  sudo({ "sudo", "dd", "if=" .. tmpfpath, "of=" .. outfile }, function(exit_code)
+  sudo({ "dd", "if=" .. tmpfpath, "of=" .. outfile }, function(exit_code)
     locked = false
     assert(uv.fs_unlink(tmpfpath))
-    if exit_code ~= 0 then return end
-    vim.bo[bufnr].modified = false
+    if exit_code ~= 0 then return jelly.warn("unable to write %s", outfile) end
+    prefer.bo(bufnr, "modified", false)
   end)
 end
