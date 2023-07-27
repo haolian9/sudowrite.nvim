@@ -15,15 +15,16 @@
 --todo: reuse tty to avoid sudo asking input password every time
 
 local cthulhu = require("cthulhu")
-local fs = require("infra.fs")
-local uv = vim.loop
-local jelly = require("infra.jellyfish")("sudowrite")
-local strlib = require("infra.strlib")
-local ex = require("infra.ex")
+local bufpath = require("infra.bufpath")
 local bufrename = require("infra.bufrename")
+local ex = require("infra.ex")
+local fs = require("infra.fs")
+local jelly = require("infra.jellyfish")("sudowrite")
 local prefer = require("infra.prefer")
+local strlib = require("infra.strlib")
 
 local api = vim.api
+local uv = vim.loop
 
 ---@param output string[]
 ---@param gold string
@@ -111,22 +112,11 @@ return function(bufnr)
 
   bufnr = bufnr or api.nvim_get_current_buf()
 
-  local outfile
-  do
-    local bufname = api.nvim_buf_get_name(bufnr)
-    if bufname == "" then return jelly.err("this is an unnamed buffer") end
-    if fs.is_absolute(bufname) then
-      outfile = bufname
-    else
-      outfile = vim.fn.fnamemodify("%:p", outfile)
-    end
-  end
+  local outfile = bufpath.file(bufnr)
+  if outfile == nil then return jelly.info("no file associated to buf#%d", bufnr) end
 
-  local tmpfpath
-  do
-    tmpfpath = os.tmpname()
-    assert(cthulhu.nvim.dump_buffer(bufnr, tmpfpath))
-  end
+  local tmpfpath = os.tmpname()
+  assert(cthulhu.nvim.dump_buffer(bufnr, tmpfpath))
 
   sudo({ "dd", "if=" .. tmpfpath, "of=" .. outfile }, function(exit_code)
     locked = false
