@@ -52,7 +52,7 @@ local function sudo(args, callback)
     term_height = math.min(lines, math.max(math.floor(lines * 0.3), 5))
   end
 
-  bufnr = api.nvim_create_buf(false, true)
+  bufnr = api.nvim_create_buf(false, true) --no ephemeral here
   bufrename(bufnr, string.format("sudo://%s", table.concat(args, " ")))
 
   local function show_prompt()
