@@ -17,8 +17,10 @@
 local cthulhu = require("cthulhu")
 local bufpath = require("infra.bufpath")
 local bufrename = require("infra.bufrename")
+local dictlib = require("infra.dictlib")
 local ex = require("infra.ex")
 local jelly = require("infra.jellyfish")("sudowrite")
+local popupgeo = require("infra.popupgeo")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
@@ -56,12 +58,10 @@ local function sudo(args, callback)
 
   local function show_prompt()
     if not (winid and api.nvim_win_is_valid(winid)) then
-      local cols, lines = vim.go.columns, vim.go.lines
       local width = term_width + 2
       local height = term_height + 2
-      local col = math.floor((cols - width) / 2)
-      local row = lines - height
-      winid = api.nvim_open_win(bufnr, true, { relative = "editor", style = "minimal", row = row, col = col, width = width, height = height })
+      local winopts = dictlib.merged({ relative = "editor" }, popupgeo.editor(width, height, "mid", "bot"))
+      winid = api.nvim_open_win(bufnr, true, winopts)
     else
       api.nvim_set_current_win(winid)
     end
