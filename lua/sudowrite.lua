@@ -17,10 +17,9 @@
 local cthulhu = require("cthulhu")
 local bufpath = require("infra.bufpath")
 local bufrename = require("infra.bufrename")
-local dictlib = require("infra.dictlib")
 local ex = require("infra.ex")
+local rifts = require("infra.rifts")
 local jelly = require("infra.jellyfish")("sudowrite")
-local popupgeo = require("infra.popupgeo")
 local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
@@ -60,8 +59,7 @@ local function sudo(args, callback)
     if not (winid and api.nvim_win_is_valid(winid)) then
       local width = term_width + 2
       local height = term_height + 2
-      local winopts = dictlib.merged({ relative = "editor" }, popupgeo.editor(width, height, "mid", "bot"))
-      winid = api.nvim_open_win(bufnr, true, winopts)
+      winid = rifts.open.fragment(bufnr, true, { relative = "editor" }, { width = width, height = height, horizontal = "mid", vertical = "bot" })
     else
       api.nvim_set_current_win(winid)
     end
