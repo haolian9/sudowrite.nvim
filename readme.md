@@ -1,12 +1,13 @@
 lua port of `command! W w !sudo tee % > /dev/null`
 
+(yet it has heavy dependencies now, [this gist](https://gist.github.com/haolian9/ac7fa319308e1e9ece18fb329fbf5711) may inspire you a simpler impl.)
 
 ## status
-* just works (tm)
-* it heavily uses ffi which may crash nvim
+* just works
+* the use of ffi may crash nvim
 
 ## prerequisites
-* nvim 0.8.*
+* nvim 0.9.*
 * haolian9/infra.nvim
 * haolian9/cthulhu.nvim
 
