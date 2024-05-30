@@ -24,7 +24,7 @@ local prefer = require("infra.prefer")
 local strlib = require("infra.strlib")
 
 local api = vim.api
-local uv = vim.loop
+local uv = vim.uv
 
 ---@param output string[]
 ---@param gold string
