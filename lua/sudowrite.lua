@@ -18,13 +18,13 @@ local cthulhu = require("cthulhu")
 local bufpath = require("infra.bufpath")
 local bufrename = require("infra.bufrename")
 local ex = require("infra.ex")
-local rifts = require("infra.rifts")
+local iuv = require("infra.iuv")
 local jelly = require("infra.jellyfish")("sudowrite")
 local prefer = require("infra.prefer")
+local rifts = require("infra.rifts")
 local strlib = require("infra.strlib")
 
 local api = vim.api
-local uv = vim.uv
 
 ---@param output string[]
 ---@param gold string
@@ -117,7 +117,7 @@ return function(bufnr)
 
   sudo({ "dd", "if=" .. tmpfpath, "of=" .. outfile }, function(exit_code)
     locked = false
-    assert(uv.fs_unlink(tmpfpath))
+    iuv.fs_unlink(tmpfpath)
     if exit_code ~= 0 then return jelly.warn("unable to write %s", outfile) end
     prefer.bo(bufnr, "modified", false)
   end)
