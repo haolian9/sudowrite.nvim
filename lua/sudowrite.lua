@@ -20,11 +20,10 @@ local bufrename = require("infra.bufrename")
 local ex = require("infra.ex")
 local iuv = require("infra.iuv")
 local jelly = require("infra.jellyfish")("sudowrite")
+local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
 local strlib = require("infra.strlib")
-
-local api = vim.api
 
 ---@param output string[]
 ---@param gold string
@@ -52,25 +51,25 @@ local function sudo(args, callback)
     term_height = math.min(lines, math.max(math.floor(lines * 0.3), 5))
   end
 
-  bufnr = api.nvim_create_buf(false, true) --no ephemeral here
+  bufnr = ni.create_buf(false, true) --no ephemeral here
   bufrename(bufnr, string.format("sudo://%s", table.concat(args, " ")))
 
   local function show_prompt()
-    if not (winid and api.nvim_win_is_valid(winid)) then
+    if not (winid and ni.win_is_valid(winid)) then
       local width = term_width + 2
       local height = term_height + 2
       winid = rifts.open.fragment(bufnr, true, { relative = "editor" }, { width = width, height = height, horizontal = "mid", vertical = "bot" })
     else
-      api.nvim_set_current_win(winid)
+      ni.set_current_win(winid)
     end
     ex("startinsert")
   end
 
-  term = api.nvim_open_term(bufnr, {
+  term = ni.open_term(bufnr, {
     on_input = function(_, _, _, data)
       vim.fn.chansend(job, data)
       if data == "\r" then vim.schedule(function()
-        api.nvim_win_close(winid, false)
+        ni.win_close(winid, false)
         winid = nil
       end) end
     end,
@@ -85,9 +84,9 @@ local function sudo(args, callback)
     stderr_buffered = false,
     env = { LANG = "C" },
     on_exit = function(_, exit_code, _)
-      if winid and api.nvim_win_is_valid(winid) then api.nvim_win_close(winid, false) end
+      if winid and ni.win_is_valid(winid) then ni.win_close(winid, false) end
       vim.fn.chanclose(term)
-      api.nvim_buf_delete(bufnr, { force = false })
+      ni.buf_delete(bufnr, { force = false })
       callback(exit_code)
     end,
     on_stdout = function(_, data, _)
@@ -107,7 +106,7 @@ return function(bufnr)
   assert(not locked)
   locked = true
 
-  bufnr = bufnr or api.nvim_get_current_buf()
+  bufnr = bufnr or ni.get_current_buf()
 
   local outfile = bufpath.file(bufnr)
   if outfile == nil then return jelly.info("no file associated to buf#%d", bufnr) end
