@@ -30,7 +30,7 @@ local strlib = require("infra.strlib")
 ---@return boolean
 local function output_contains(output, gold)
   for _, line in ipairs(output) do
-    if strlib.find(line, gold) then return true end
+    if strlib.contains(line, gold) then return true end
   end
   return false
 end
