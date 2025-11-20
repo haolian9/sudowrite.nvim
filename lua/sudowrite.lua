@@ -20,6 +20,7 @@ local bufrename = require("infra.bufrename")
 local ex = require("infra.ex")
 local iuv = require("infra.iuv")
 local jelly = require("infra.jellyfish")("sudowrite")
+local mi = require("infra.mi")
 local ni = require("infra.ni")
 local prefer = require("infra.prefer")
 local rifts = require("infra.rifts")
@@ -106,7 +107,7 @@ return function(bufnr)
   assert(not locked)
   locked = true
 
-  bufnr = bufnr or ni.get_current_buf()
+  bufnr = mi.resolve_bufnr_param(bufnr)
 
   local outfile = bufpath.file(bufnr)
   if outfile == nil then return jelly.info("no file associated to buf#%d", bufnr) end
